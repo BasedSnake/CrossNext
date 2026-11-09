@@ -1,5 +1,7 @@
 #include "ReleaseJsonParser.h"
 
+#include <FirmwareVersion.h>
+
 #include <cstdlib>
 #include <cstring>
 
@@ -49,7 +51,7 @@ const char* ReleaseJsonParser::getFirmwareUrl() const { return firmwareUrl; }
 size_t ReleaseJsonParser::getFirmwareSize() const { return firmwareSize; }
 
 void ReleaseJsonParser::commitAsset() {
-  if (strcmp(currentAssetName, firmwareAssetName) == 0) {
+  if (isFirmwareAsset(currentAssetName)) {
     memcpy(firmwareUrl, currentAssetUrl, sizeof(firmwareUrl));
     firmwareSize = currentAssetSize;
     firmwareFound = true;
@@ -57,6 +59,24 @@ void ReleaseJsonParser::commitAsset() {
   currentAssetName[0] = '\0';
   currentAssetUrl[0] = '\0';
   currentAssetSize = 0;
+}
+
+// The exact name, or "<stem>-v<X.Y.Z[-fork.N]>.bin" for the asset's own stem.
+// The version must be a release version, so a look-alike such as a merged
+// "-full" image never lands in an app slot.
+bool ReleaseJsonParser::isFirmwareAsset(const char* name) const {
+  if (name[0] == '\0') return false;
+  if (strcmp(name, firmwareAssetName) == 0) return true;
+  static constexpr char kExt[] = ".bin";
+  constexpr size_t extLen = sizeof(kExt) - 1;
+  const size_t assetLen = strlen(firmwareAssetName);
+  const size_t nameLen = strlen(name);
+  if (assetLen <= extLen || strcmp(firmwareAssetName + assetLen - extLen, kExt) != 0) return false;
+  const size_t stemLen = assetLen - extLen;
+  if (nameLen <= stemLen + 2 + extLen) return false;
+  if (memcmp(name, firmwareAssetName, stemLen) != 0 || name[stemLen] != '-' || name[stemLen + 1] != 'v') return false;
+  if (strcmp(name + nameLen - extLen, kExt) != 0) return false;
+  return firmware_version::isReleaseVersion(name + stemLen + 2, nameLen - stemLen - 2 - extLen);
 }
 
 // -- SAX callbacks (static trampolines) -------------------------------------
@@ -103,8 +123,14 @@ void ReleaseJsonParser::sOnString(void* ctx, const char* value, size_t len) {
       }
       break;
     case LastKey::ASSET_NAME:
-      if (self->position == Position::IN_ASSET_OBJECT && self->assetDepth == 1)
-        safeCopy(self->currentAssetName, sizeof(self->currentAssetName), value, len);
+      // A name that does not fit is never the firmware: matched truncated,
+      // a longer name could pass for a shorter one.
+      if (self->position == Position::IN_ASSET_OBJECT && self->assetDepth == 1) {
+        if (len < sizeof(self->currentAssetName))
+          safeCopy(self->currentAssetName, sizeof(self->currentAssetName), value, len);
+        else
+          self->currentAssetName[0] = '\0';
+      }
       break;
     case LastKey::ASSET_URL:
       if (self->position == Position::IN_ASSET_OBJECT && self->assetDepth == 1)

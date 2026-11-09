@@ -15,7 +15,9 @@ class ReleaseJsonParser {
   void reset();
   void feed(const char* data, size_t len);
 
-  // Release-asset filename to match (default "firmware.bin").
+  // Release-asset filename to match (default "firmware.bin"). The same name
+  // carrying its release version also matches: "firmware-sticky.bin" accepts
+  // "firmware-sticky-v1.4.0-fork.2.bin", and nothing else built on that stem.
   void setFirmwareAssetName(const char* name);
 
   bool foundTag() const;
@@ -51,6 +53,7 @@ class ReleaseJsonParser {
   static void sOnArrayEnd(void* ctx);
 
   void commitAsset();
+  bool isFirmwareAsset(const char* name) const;
 
   StreamingJsonParser parser;
 

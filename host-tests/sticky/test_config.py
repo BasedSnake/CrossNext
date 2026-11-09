@@ -60,6 +60,19 @@ class StickyConfig(unittest.TestCase):
         self.assertNotIn("-DCROSSPOINT_DEV_SERIAL_BRIDGE=1", flags("gh_release_sticky"))
         self.assertIn("-DCROSSPOINT_DEV_SERIAL_BRIDGE=1", flags("sticky"))
 
+    def test_only_the_sticky_checks_the_fork_for_updates(self):
+        # The fork publishes Sticky images only, so another board pointed at it
+        # would find nothing; the X4 Pro and PaperMono keep upstream's default.
+        fork = "https://api.github.com/repos/BasedSnake/CrossNext/releases/latest"
+        for env in ENVS:
+            with self.subTest(env=env):
+                sources = [f for f in flags(env) if f.startswith("-DCROSSNEXT_RELEASE_URL=")]
+                self.assertEqual(len(sources), 1)
+                self.assertEqual(sources[0].split("=", 1)[1].replace(chr(92), "").strip('"'), fork)
+        for env in ("x4pro", "gh_release_x4pro", "papermono", "gh_release_papermono"):
+            with self.subTest(env=env):
+                self.assertFalse(any(f.startswith("-DCROSSNEXT_RELEASE_URL=") for f in flags(env)))
+
 
 if __name__ == "__main__":
     unittest.main()
