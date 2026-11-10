@@ -349,7 +349,11 @@ one 4 KB block.
 ### install.json
 
 Written right before the device hands the card to the USB host, so the page
-can find the right drive, know what fits, and know what is already there:
+can find the right drive, know what fits, and know what is already there.
+A board without USB Drive (`FREEINK_CAP_USB_MSC` off, the Sticky) never hands
+the card over and never writes it: its install screen gives the card-reader
+route instead (a `wikipedia` folder at the root of the card, `manifest.json`
+last).
 
 ```json
 {

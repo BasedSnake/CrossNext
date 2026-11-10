@@ -46,12 +46,23 @@ constexpr Style resolve(uint8_t general, uint8_t section) {
   }
   return normalized(general);
 }
-// Stable keys, independent of shelf order and translated labels.
+// Stable keys, independent of shelf order and translated labels. Append only:
+// settings store overrides under these names, and an index is a row of
+// menuFontItemOverrides.
+// clang-format off
 inline constexpr const char* kItemKeys[] = {
     "CHESS",         "CHECKERS",  "GO",       "MINESWEEPER", "PICROSS",   "WORDLE",       "2048",       "THE INTERCEPT",
     "BATTLESHIP",    "SOLITAIRE", "HEARTS",   "MURDLE",      "CARNIVORO", "CONNECT FOUR", "SUDOKU",     "OTHELLO",
     "READING QUEST", "PET",       "HABITS",   "TO DO LIST",  "NOTES",     "POMODORO",     "WALLPAPERS", "QUOTES",
-    "FLASHCARDS",    "WORDS",     "CALENDAR", "CLOCK",       "COUNTER"};
+    "FLASHCARDS",    "WORDS",     "CALENDAR", "CLOCK",       "COUNTER",
+#if CROSSNEXT_SHELF_EXTRAS
+    // The Sticky's extra shelf rows (platformio.ini [sticky_common]). Kept out
+    // of other builds so their shelf and image stay as they were.
+    "FOREHEAD", "INSIDER", "KNUCKLEBONES", "SEA SALT", "YAHTZEE",
+    "WIKIPEDIA", "XKCD", "TRIVIA", "HACKER NEWS", "INSTAPAPER",
+#endif
+};
+// clang-format on
 inline constexpr int kItemCount = sizeof(kItemKeys) / sizeof(kItemKeys[0]);
 inline constexpr uint8_t kNoItem = kItemCount;
 constexpr bool sameKey(const char* a, const char* b) {

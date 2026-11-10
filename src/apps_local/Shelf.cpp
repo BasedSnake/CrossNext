@@ -53,6 +53,13 @@
 #include "wordle/WordleActivity.h"
 #include "words/WordsActivity.h"
 #include "xkcd/XkcdActivity.h"
+#if CROSSNEXT_SHELF_EXTRAS
+#include "insider/InsiderActivity.h"
+#include "knucklebones/KnucklebonesActivity.h"
+#include "seasalt/SeaSaltActivity.h"
+#include "trivia/TriviaActivity.h"
+#include "yahtzee/YahtzeeActivity.h"
+#endif
 
 namespace {
 
@@ -76,6 +83,15 @@ constexpr shelf::Item kGames[] = {
     {"CONNECT FOUR", &icon_connectfour_32, &ConnectFourActivity::create},
     {"SUDOKU", &icon_sudoku_32, &SudokuActivity::create},
     {"OTHELLO", &extra_circle_dot_32, &PocketGamesActivity::createOthello},
+#if CROSSNEXT_SHELF_EXTRAS
+    // The Sticky's extras (platformio.ini [sticky_common]); other boards keep
+    // the shelf above. Each has a key at the end of menufont::kItemKeys.
+    {"FOREHEAD", &icon_forehead_32, &ForeheadActivity::create},
+    {"INSIDER", &icon_insider_32, &InsiderActivity::create},
+    {"KNUCKLEBONES", &icon_knucklebones_32, &KnucklebonesActivity::create},
+    {"SEA SALT", &icon_seasalt_32, &SeaSaltActivity::create},
+    {"YAHTZEE", &icon_yahtzee_32, &YahtzeeActivity::create},
+#endif
 };
 constexpr shelf::Item kApps[] = {
     {"READING QUEST", &icon_dungeon_32, &ReadingQuestActivity::create},
@@ -91,6 +107,14 @@ constexpr shelf::Item kApps[] = {
     {"CALENDAR", &extra_calendar_32, &ToolsActivity::calendar},
     {"CLOCK", &extra_clock_32, &ToolsActivity::clock},
     {"COUNTER", &icon_calculator_32, &ToolsActivity::counter},
+#if CROSSNEXT_SHELF_EXTRAS
+    // The Sticky's extras, as in kGames.
+    {"WIKIPEDIA", &icon_wikipedia_32, &WikipediaActivity::create},
+    {"XKCD", &icon_xkcd_32, &XkcdActivity::create},
+    {"TRIVIA", &icon_trivia_32, &TriviaActivity::create},
+    {"HACKER NEWS", &icon_hackernews_32, &HackerNewsActivity::create},
+    {"INSTAPAPER", &icon_instapaper_32, &InstapaperActivity::create},
+#endif
 };
 
 // The two rows Home grows, in reading order. Titles are Title Case because

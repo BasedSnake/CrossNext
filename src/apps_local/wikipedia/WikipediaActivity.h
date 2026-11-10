@@ -35,6 +35,7 @@ class WikipediaActivity final : public Activity {
   void onExit() override;
   void loop() override;
   void render(RenderLock&&) override;
+#if FREEINK_CAP_USB_MSC
   // The card is the host's while the install screen shows; a deep sleep there
   // is a chip reset with the host mid-write.
   bool preventAutoSleep() override { return view_ == View::Install; }
@@ -42,6 +43,10 @@ class WikipediaActivity final : public Activity {
   // navigate: ActivityManager's home gesture would exit through onExit with
   // no restart, and the card stays detached until someone power-cycles.
   bool requiresExclusiveStorageLoop() const override { return view_ == View::Install; }
+#else
+  // Without USB Drive the install screen is the card-copy instructions and
+  // hands nothing over, so it sleeps and navigates like any other screen.
+#endif
   // Keep laying out the open article between renders.
   bool skipLoopDelay() override;
 

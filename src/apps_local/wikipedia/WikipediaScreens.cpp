@@ -476,6 +476,35 @@ int buildContents(toybox::Screen& screen, const ContentsModel& model) {
   return shown;
 }
 
+namespace {
+// The one string that has to be read off the glass and typed: the reading
+// face, bold. It has no space to wrap at, so one line of it ended in an
+// ellipsis on the panel ("crossplay.ma-r-s.com/wikipe..."); the host goes
+// on one line and the path on the next, each whole. Returns the y below it.
+int16_t drawAddress(toybox::Screen& screen, const char* url, int16_t y) {
+  const fui::Rect body = screen.body();
+  const int16_t inner = static_cast<int16_t>(body.width - kMargin * 2);
+  const int16_t lineHeight = screen.target().lineHeight(toybox::kBodyFont);
+  fui::TextStyle address = textStyle(toybox::kBodyFont, fui::TextAlign::Center);
+  address.bold = true;
+  address.maxLines = 1;
+  const char* slash = url == nullptr ? nullptr : strchr(url, '/');
+  if (slash != nullptr && slash != url) {
+    char host[64];
+    const size_t n =
+        static_cast<size_t>(slash - url) < sizeof(host) - 1 ? static_cast<size_t>(slash - url) : sizeof(host) - 1;
+    memcpy(host, url, n);
+    host[n] = '\0';
+    screen.target().text(fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, lineHeight}, host, address);
+    y = static_cast<int16_t>(y + lineHeight);
+    screen.target().text(fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, lineHeight}, slash, address);
+  } else {
+    screen.target().text(fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, lineHeight}, url, address);
+  }
+  return static_cast<int16_t>(y + lineHeight);
+}
+}  // namespace
+
 // The first-open screen. The address first, the sentence, then the square
 // the activity fills with the QR code, then what the cable is doing. Every
 // box is sized from the reader's own line height: the panel showed the
@@ -486,29 +515,8 @@ fui::Rect buildInstall(toybox::Screen& screen, const InstallModel& model) {
   const int16_t inner = static_cast<int16_t>(body.width - kMargin * 2);
   const int16_t lineHeight = screen.target().lineHeight(toybox::kBodyFont);
   const int16_t twoLines = static_cast<int16_t>(lineHeight * 2);
-  int16_t y = static_cast<int16_t>(body.y + 20);
-
-  // The one string that has to be read off the glass and typed: the reading
-  // face, bold. It has no space to wrap at, so one line of it ended in an
-  // ellipsis on the panel ("crossplay.ma-r-s.com/wikipe..."); the host goes
-  // on one line and the path on the next, each whole.
-  fui::TextStyle address = textStyle(toybox::kBodyFont, fui::TextAlign::Center);
-  address.bold = true;
-  address.maxLines = 1;
-  const char* slash = model.url == nullptr ? nullptr : strchr(model.url, '/');
-  if (slash != nullptr && slash != model.url) {
-    char host[64];
-    const size_t n = static_cast<size_t>(slash - model.url) < sizeof(host) - 1 ? static_cast<size_t>(slash - model.url)
-                                                                               : sizeof(host) - 1;
-    memcpy(host, model.url, n);
-    host[n] = '\0';
-    screen.target().text(fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, lineHeight}, host, address);
-    y = static_cast<int16_t>(y + lineHeight);
-    screen.target().text(fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, lineHeight}, slash, address);
-  } else {
-    screen.target().text(fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, lineHeight}, model.url, address);
-  }
-  y = static_cast<int16_t>(y + lineHeight + 10);
+  int16_t y = drawAddress(screen, model.url, static_cast<int16_t>(body.y + 20));
+  y = static_cast<int16_t>(y + 10);
   drawProse(screen, fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, twoLines},
             "Open this in Chrome or Edge on a computer. About ten minutes.", fui::TextAlign::Center);
   y = static_cast<int16_t>(y + twoLines + 12);
@@ -533,6 +541,43 @@ fui::Rect buildInstall(toybox::Screen& screen, const InstallModel& model) {
   }
   return qr;
 }
+
+#if !FREEINK_CAP_USB_MSC
+// The same address and code as the cable route, then the card route in words.
+// Nothing waits on a host here, so there is no status line and no TRY AGAIN:
+// the screen is instructions, and Back leaves it.
+fui::Rect buildCardCopy(toybox::Screen& screen, const CardCopyModel& model) {
+  chrome(screen, "GET WIKIPEDIA");
+  const fui::Rect body = screen.body();
+  const int16_t inner = static_cast<int16_t>(body.width - kMargin * 2);
+  const int16_t lineHeight = screen.target().lineHeight(toybox::kBodyFont);
+  const int16_t twoLines = static_cast<int16_t>(lineHeight * 2);
+  int16_t y = drawAddress(screen, model.url, static_cast<int16_t>(body.y + 20));
+  y = static_cast<int16_t>(y + 10);
+  drawProse(screen, fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, twoLines},
+            "No USB Drive on this reader: put its card in a computer.", fui::TextAlign::Center);
+  y = static_cast<int16_t>(y + twoLines + 12);
+
+  const int16_t side = 232;
+  const fui::Rect qr{static_cast<int16_t>(body.x + (body.width - side) / 2), y, side, side};
+  y = static_cast<int16_t>(qr.bottom() + 20);
+
+  // Everything below the code down to the parts line: the steps are the
+  // screen's point, and a fixed box would cut them at the next reading size.
+  const int16_t partsHeight = model.partsLine ? 36 : 0;
+  const int16_t stepsHeight = static_cast<int16_t>(body.bottom() - 8 - partsHeight - y);
+  drawProse(screen, fui::Rect{static_cast<int16_t>(body.x + kMargin), y, inner, stepsHeight},
+            "Copy the pack into a folder named wikipedia at the root of the card, manifest.json last. "
+            "Then put the card back.",
+            fui::TextAlign::Center);
+  if (model.partsLine) {
+    drawLabel(screen,
+              fui::Rect{static_cast<int16_t>(body.x + kMargin), static_cast<int16_t>(body.bottom() - 36), inner, 28},
+              model.partsLine, toybox::kSmallFont, fui::TextAlign::Center, toybox::kButtonCut);
+  }
+  return qr;
+}
+#endif
 
 void buildNotice(toybox::Screen& screen, const NoticeModel& model) {
   chrome(screen, "WIKIPEDIA");

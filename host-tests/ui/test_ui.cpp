@@ -12422,6 +12422,14 @@ fui::Rect buildWikiInstall(Rendered& out, const wikiui::InstallModel& model) {
   return wikiui::buildInstall(screen, model);
 }
 
+fui::Rect buildWikiCardCopy(Rendered& out, const wikiui::CardCopyModel& model) {
+  const fui::DeviceContext ctx = device();
+  const fui::InputSnapshot noInput{};
+  toybox::Frame frame(out.target, ctx, noInput, out.interactions);
+  toybox::Screen screen(frame, toybox::themeTokens());
+  return wikiui::buildCardCopy(screen, model);
+}
+
 fui::ActionEvent tapRun(Rendered& out, const FakeTarget::TextRun* run) {
   return out.tap(run->rect.x + run->rect.width / 2, run->rect.y + run->rect.height / 2);
 }
@@ -12718,6 +12726,47 @@ void testWikipediaInstallSaysTheAddressFirst() {
   buildWikiInstall(failed, model);
   const FakeTarget::TextRun* retry = failed.target.find("TRY AGAIN");
   CHECK(retry != nullptr && tapRun(failed, retry).action == wikiui::ActionRetry);
+}
+
+// A board without USB Drive (the Sticky): the same address and code, then the
+// card route -- the folder and manifest.json last -- and nothing about a cable
+// or a failure, at the fake line and at a reading-size one.
+void testWikipediaCardCopyNamesTheFolderAndTheManifestLast() {
+  const char* const kSteps =
+      "Copy the pack into a folder named wikipedia at the root of the card, manifest.json last. "
+      "Then put the card back.";
+  for (const int16_t lineH : {int16_t(20), int16_t(40)}) {
+    for (const char* parts : {static_cast<const char*>(nullptr), "3 OF 46 PARTS ON THE CARD"}) {
+      wikiui::CardCopyModel model;
+      model.url = "crossplay.ma-r-s.com/wikipedia";
+      model.partsLine = parts;
+      Rendered out;
+      out.target.lineH = lineH;
+      const fui::Rect qr = buildWikiCardCopy(out, model);
+      CHECK(out.target.drew("GET WIKIPEDIA"));
+      CHECK(out.target.drew("crossplay.ma-r-s.com"));
+      CHECK(out.target.drew("/wikipedia"));
+      CHECK(qr.width == qr.height && qr.width >= 200);
+      CHECK(!out.target.drew("TRY AGAIN"));
+      CHECK(!out.target.drew("Then plug the reader into the computer with its cable."));
+      const FakeTarget::TextRun* steps = out.target.find(kSteps);
+      CHECK(steps != nullptr);
+      if (steps != nullptr) {
+        CHECK(steps->rect.y >= qr.bottom());
+        // Room for every word: the run's lines at ten pixels a character, plus
+        // a line for the wrap's ragged ends.
+        const int perLine = steps->rect.width / out.target.charW;
+        const int needed = (static_cast<int>(std::strlen(kSteps)) + perLine - 1) / perLine + 1;
+        CHECK(steps->style.maxLines >= needed);
+        CHECK(steps->rect.height >= needed * lineH);
+      }
+      if (parts != nullptr) {
+        const FakeTarget::TextRun* line = out.target.find(parts);
+        CHECK(line != nullptr);
+        if (line != nullptr && steps != nullptr) CHECK(line->rect.y >= steps->rect.bottom());
+      }
+    }
+  }
 }
 
 // --- Notes: every line of a long item is drawn, fits, and is struck --------
@@ -13474,6 +13523,7 @@ int main() {
   testWikipediaArticleChromeLeavesThePageItsRoom();
   testWikipediaContentsRowsCarryTheHeading();
   testWikipediaInstallSaysTheAddressFirst();
+  testWikipediaCardCopyNamesTheFolderAndTheManifestLast();
   testTriviaSettingsShowsTheToggleAndItsState();
   testTriviaSettingsRowsCarryTheirIndex();
   testTriviaMenuRowsCarryTheirOwnAction();

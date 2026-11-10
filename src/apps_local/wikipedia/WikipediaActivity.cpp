@@ -667,6 +667,15 @@ void WikipediaActivity::pruneCache() {}
 // --------------------------------------------------------------- install
 
 void WikipediaActivity::enterInstall() {
+#if !FREEINK_CAP_USB_MSC
+  // No USB Drive on this board (the Sticky): nothing here can hand the card to
+  // a computer, so instead of a handoff that can only fail, the screen gives
+  // the card-reader route. Nothing changes hands, so an open pack stays open
+  // and Back returns to it.
+  view_ = View::Install;
+  interactionsReady_ = false;
+  requestUpdate();
+#else
   // Everything the page needs to know, written before the card changes hands;
   // then no file of ours stays open while the host owns the card. Not the
   // free space: counting it walks the whole FAT (seven seconds on a 16 GB
@@ -689,6 +698,7 @@ void WikipediaActivity::enterInstall() {
   }
   stageAt_ = millis();
   requestUpdate();
+#endif
 }
 
 // Only reached when something outside this screen's loop ended the activity
@@ -811,6 +821,18 @@ void WikipediaActivity::loop() {
   // the panel rather than before it: the open used to wait on it.
   if (packOpen_ && interactionsReady_ && !pack_.isWarm()) pack_.warm();
   if (view_ == View::Install) {
+#if !FREEINK_CAP_USB_MSC
+    // The card-copy screen handed nothing over, so Back is an ordinary Back:
+    // to the pack when one is open, otherwise off to the shelf.
+    if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+      if (packOpen_) {
+        go(View::Search);
+      } else {
+        shelf::leave(renderer, mappedInput);
+      }
+    }
+    return;
+#else
     if (restartRequested_) return;
     const auto state = Storage.usbDriveState();
     if (usbActive_) {
@@ -887,6 +909,7 @@ void WikipediaActivity::loop() {
       routeAction(static_cast<int>(ev.action), static_cast<int>(ev.value));
     }
     return;
+#endif
   }
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
@@ -1127,11 +1150,18 @@ void WikipediaActivity::render(RenderLock&&) {
       break;
     }
     case View::Install: {
+#if !FREEINK_CAP_USB_MSC
+      wikiui::CardCopyModel model;
+      model.url = kInstallUrlShown;
+      model.partsLine = partsLine_.empty() ? nullptr : partsLine_.c_str();
+      const fui::Rect qr = wikiui::buildCardCopy(screen, model);
+#else
       wikiui::InstallModel model;
       model.stage = stage_;
       model.url = kInstallUrlShown;
       model.partsLine = partsLine_.empty() ? nullptr : partsLine_.c_str();
       const fui::Rect qr = wikiui::buildInstall(screen, model);
+#endif
       QrUtils::drawQrCode(renderer, Rect{qr.x, qr.y, qr.width, qr.height}, kInstallUrl);
       break;
     }

@@ -72,6 +72,14 @@ Sudoku and Othello.
 Its **13 app entries** are Reading Quest, PET, Habits, To Do List, Notes, Pomodoro,
 Wallpapers, Quotes, Flashcards, Words, Calendar, Clock and Counter.
 
+The **Sticky** build adds five more games, Forehead, Insider, Knucklebones,
+Sea Salt and Yahtzee, and five more apps: Wikipedia (offline),
+xkcd, Trivia, Hacker News and Instapaper. The Sticky has no USB Drive, so
+Wikipedia's pack goes on the card with a card reader: open
+[crossplay.ma-r-s.com/wikipedia](https://crossplay.ma-r-s.com/wikipedia), copy
+the files into a `wikipedia` folder at the root of the card and `manifest.json`
+last.
+
 Fresh settings start in **English**. Spanish is available in the language
 settings; an existing installation keeps its saved language.
 

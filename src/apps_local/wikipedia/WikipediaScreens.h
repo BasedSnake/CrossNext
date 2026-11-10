@@ -7,8 +7,10 @@
 // Three screens carry the app: SEARCH (the home: a field, the matches under
 // it, the keyboard the activity draws below), the ARTICLE chrome (title band
 // with CONTENTS, a footer with the page and section), and INSTALL (the address,
-// a square left for the QR code, and the cable's status). CONTENTS is an
-// overlay list; NOTICE is one sentence and a way out.
+// a square left for the QR code, and the cable's status; on a board without USB
+// Drive, CARD COPY in its place: the same address and code, then the
+// card-reader route in words). CONTENTS is an overlay list; NOTICE is one
+// sentence and a way out.
 
 #include "../ui/ToyboxScreen.h"
 
@@ -108,6 +110,17 @@ struct InstallModel {
 
 // Draws everything but the QR code; returns the square left for it.
 fui::Rect buildInstall(toybox::Screen& screen, const InstallModel& model);
+
+// The install screen for a board that cannot share its card over USB (the
+// Sticky): the address and the code, then the card-reader route -- the folder,
+// and manifest.json last. Built only where FREEINK_CAP_USB_MSC is off; the host
+// suite builds it too. Returns the square left for the QR code.
+struct CardCopyModel {
+  const char* url = "";
+  // "3 OF 46 PARTS ON THE CARD" when a pack is already there; null otherwise.
+  const char* partsLine = nullptr;
+};
+fui::Rect buildCardCopy(toybox::Screen& screen, const CardCopyModel& model);
 
 struct NoticeModel {
   const char* headline = "";

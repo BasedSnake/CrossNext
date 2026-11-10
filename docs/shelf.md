@@ -303,6 +303,12 @@ now handed one page at a time, so only a page is ever copied and the arrays are
 sized by the tallest band this panel can draw rather than by how many games
 Mario has promised people.
 
+**A row can be one board's.** The Sticky's extra five games and five apps sit
+at the end of `kGames` and `kApps` inside `#if CROSSNEXT_SHELF_EXTRAS`, a flag
+set only in `[sticky_common]` of `platformio.ini`; their interface-font keys
+sit at the end of `menufont::kItemKeys` (append only) under the same flag. The
+X4 Pro and PaperMono shelves, and their images, do not change.
+
 **4. Leave through the shelf.**
 
 ```cpp

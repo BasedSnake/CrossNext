@@ -73,6 +73,26 @@ class StickyConfig(unittest.TestCase):
             with self.subTest(env=env):
                 self.assertFalse(any(f.startswith("-DCROSSNEXT_RELEASE_URL=") for f in flags(env)))
 
+    def test_only_the_sticky_shelves_the_extras(self):
+        # Shelf.cpp and MenuFontStyle.h add ten rows and their font keys
+        # under this flag, and five of the apps are sources base leaves out;
+        # the X4 Pro and PaperMono shelves and images must not move.
+        extras = ("trivia", "insider", "seasalt", "yahtzee", "knucklebones")
+        for env in ENVS:
+            with self.subTest(env=env):
+                self.assertIn("-DCROSSNEXT_SHELF_EXTRAS=1", flags(env))
+                filters = option("env:" + env, "build_src_filter").split()
+                for app in extras:
+                    self.assertIn("+<apps_local/%s/>" % app, filters)
+                    self.assertGreater(filters.index("+<apps_local/%s/>" % app),
+                                       filters.index("-<apps_local/%s/>" % app))
+        for env in ("x4pro", "gh_release_x4pro", "papermono", "gh_release_papermono"):
+            with self.subTest(env=env):
+                self.assertFalse(any(f.startswith("-DCROSSNEXT_SHELF_EXTRAS") for f in flags(env)))
+                filters = option("env:" + env, "build_src_filter").split()
+                for app in extras:
+                    self.assertNotIn("+<apps_local/%s/>" % app, filters)
+
 
 if __name__ == "__main__":
     unittest.main()
